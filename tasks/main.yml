@@ -5,6 +5,27 @@
     msg: 'Invalid install type: {{ k3s_install_type | default('') }}'
   when: k3s_install_type != 'server' and k3s_install_type != 'agent'
 
+- name: k3s directory
+  ansible.builtin.file:
+    path: ~/k3s
+    state: directory
+    mode: "0755"
+
+- name: Copy python requirements
+  ansible.builtin.copy:
+    src: requirements.txt
+    dest: ~/k3s/requirements.txt
+
+- name: Install pip
+  ansible.builtin.package:
+    name: python3-pip
+    state: present
+
+- name: Install python packages via pip
+  ansible.builtin.pip:
+    requirements: ~/k3s/requirements.txt
+    state: present
+
 # Configure ufw firewall, if required
 - when: k3s_ufw_allow_nets | length > 0
   block:
@@ -57,7 +78,7 @@
   loop_control:
     loop_var: k3s_configure_server_name
 
-# Any post installation/configuration checks that should be performed
-- name: Post install checks (server)
-  include_tasks: server_post_install_checks.yml
+# Any post-install configuration and checks that should be done from a server node
+- name: Post install configuration (server)
+  include_tasks: server_post_install.yml
   when: k3s_install_type == 'server'

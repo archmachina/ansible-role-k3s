@@ -22,3 +22,9 @@
   failed_when: k3s_kubectl_check.rc != 0
   loop: "{{ play_hosts }}"
   run_once: true
+
+# Any post-installation components to install
+- name: Install components
+  include_tasks:
+    file: install_components.yml
+  run_once: true

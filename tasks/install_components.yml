@@ -1,0 +1,37 @@
+---
+
+- name: Dashboard install
+  when: k3s_install_dashboard
+  block:
+    - name: Download dashboard manifest
+      ansible.builtin.get_url:
+        url: "{{ k3s_dashboard_url }}"
+        dest: ~/k3s/dashboard.yml
+        mode: "0644"
+
+    - name: Apply dashboard manifest
+      kubernetes.core.k8s:
+        state: present
+        src: ~/k3s/dashboard.yml
+        apply: true
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        no_proxy: true
+      run_once: true
+
+- name: Longhorn install
+  when: k3s_install_longhorn
+  block:
+    - name: Download longhorn manifest
+      ansible.builtin.get_url:
+        url: "{{ k3s_longhorn_url }}"
+        dest: ~/k3s/longhorn.yml
+        mode: "0644"
+
+    - name: Apply longhorn manifest
+      kubernetes.core.k8s:
+        state: present
+        src: ~/k3s/longhorn.yml
+        apply: true
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        no_proxy: true
+      run_once: true
