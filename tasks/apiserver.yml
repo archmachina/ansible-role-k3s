@@ -1,0 +1,82 @@
+---
+
+# Copy the HAProxy configuration to the host for volume mounting
+- name: Copy haproxy configuration
+  ansible.builtin.template:
+    dest: /etc/k3s-haproxy.cfg
+    src: haproxy.cfg.j2
+    owner: root
+    group: root
+    mode: 0644
+  register: haproxy_config
+
+# Local haproxy container to find a valid backend
+# This container performs health checks to find a suitable target
+- name: k3s apiserver container
+  community.docker.docker_container:
+    name: k3s-apiserver-haproxy
+    image: haproxy:2.5.5
+    volumes:
+      - "/etc/k3s-haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg"
+    state: "started"
+    restart_policy: "always"
+    network_mode: "host"
+    recreate: "{{ true if haproxy_config.changed else false }}"
+    restart: "{{ true if haproxy_config.changed else false }}"
+
+- name: Wait for haproxy to listen
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ k3s_apiserver_lb_port }}"
+    state: present
+    timeout: "30"
+
+# Determine whether the haproxy container is able to reach a valid backend
+# (i.e. whether there is an existing cluster)
+- block:
+    # Check for HTTP 200 on k3s_apiserver_lb_port
+    - name: "Check for healthy apiserver lb on port {{ k3s_apiserver_lb_port }}"
+      ansible.builtin.uri:
+        validate_certs: false
+        use_proxy: false
+        url: "https://127.0.0.1:{{ k3s_apiserver_lb_port }}/"
+      environment:
+        http_proxy: ''
+        https_proxy: ''
+      register: k3s_apiserver_lb_port_status
+      retries: 2
+      delay: 15
+      # status greater than 0 means we have a HTTP response, so a backend is reachable (haproxy is
+      # a TCP load balancer in this config, so won't send HTTP responses itself)
+      # Ideally we would monitor the kubernetes health endpoints, but they require authentication in k3s
+      until: k3s_apiserver_lb_port_status.status|default(-1)|int > 0
+      failed_when: k3s_apiserver_lb_port_status.status|default(-1)|int <= 0
+  rescue:
+    - debug:
+        msg: "Apiserver LB on port {{ k3s_listen_port }} is unreachable/unhealthy"
+
+# When k3s_apiserver_lb_port_status was successful, update k3s_apiserver_reachable
+# on all hosts
+- name: Update k3s_apiserver_reachable
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  ansible.builtin.set_fact:
+    k3s_apiserver_reachable: true
+  when: k3s_apiserver_lb_port_status.status|int > 0
+  loop: "{{ play_hosts }}"
+
+# When k3s_apiserver_lb_port_status was unsuccessful, update k3s_apiserver_reachable
+# on all hosts
+- name: Update k3s_apiserver_unreachable
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  ansible.builtin.set_fact:
+    k3s_apiserver_unreachable: true
+  when: k3s_apiserver_lb_port_status.status|int <= 0
+  loop: "{{ play_hosts }}"
+
+# Ensure all members have a consistent view of whether an apiserver is available or not
+- name: Check for apiserver reachability consistency
+  when: (k3s_apiserver_reachable and k3s_apiserver_unreachable) or (not k3s_apiserver_reachable and not k3s_apiserver_unreachable)
+  ansible.builtin.fail:
+    msg: "apiserver reachability inconsistency - Some nodes may be able to reach the apiserver, while others may not"

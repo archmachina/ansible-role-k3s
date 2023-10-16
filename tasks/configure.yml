@@ -1,0 +1,78 @@
+---
+
+- when: inventory_hostname == k3s_configure_server_name
+  block:
+    - name: Download k3s binary
+      ansible.builtin.get_url:
+        dest: /usr/local/bin/k3s
+        url: "{{ k3s_binary_url }}"
+        owner: root
+        group: root
+        mode: "0755"
+      notify: 'restart k3s'
+
+    - name: k3s directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+      loop:
+        - /etc/rancher
+        - /etc/rancher/k3s
+
+    - name: k3s config
+      ansible.builtin.copy:
+        content: "{{ k3s_config_content }}"
+        dest: /etc/rancher/k3s/config.yaml
+        owner: root
+        group: root
+        mode: "0644"
+      notify: 'restart k3s'
+
+    - name: Symlinks
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          which "{{ item }}" || (ln -s "{{ k3s_binary_path}}" "/usr/local/bin/{{ item }}" && exit 5)
+      register: k3s_symlink_status
+      changed_when: k3s_symlink_status.rc == 5
+      failed_when: k3s_symlink_status.rc != 5 and k3s_symlink_status.rc != 0
+      loop:
+        - kubectl
+        - crictl
+        - ctr
+
+    - name: Systemd service
+      ansible.builtin.template:
+        src: k3s.service.j2
+        dest: /etc/systemd/system/k3s.service
+        owner: root
+        group: root
+        mode: "0640"
+      notify: 'restart k3s'
+
+    - name: Systemd service environment
+      ansible.builtin.template:
+        src: k3s.service.env.j2
+        dest: /etc/systemd/system/k3s.service.env
+        owner: root
+        group: root
+        mode: "0640"
+      notify: 'restart k3s'
+
+    - name: Enable k3s service
+      ansible.builtin.systemd:
+        name: k3s
+        daemon_reload: true
+        enabled: true
+
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Start k3s service
+      ansible.builtin.systemd:
+        name: k3s
+        state: 'started'

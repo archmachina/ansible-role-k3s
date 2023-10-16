@@ -1,0 +1,79 @@
+---
+
+- when:
+    # Only perform cluster init when the apiserver is unreachable
+    - k3s_apiserver_reachable == false
+  block:
+    # We're going to perform cluster init as the apiserver is unreachable, so make
+    # sure we are in a clean state to perform the init
+    - name: Cluster init required
+      ansible.builtin.debug:
+        msg: Performing cluster initialisation - checking requirements
+
+    - name: Load service state
+      ansible.builtin.service_facts:
+
+    # Fail prerequisites for cluster init if a host has a k3s service installed
+    - name: Fail service check state
+      ansible.builtin.set_fact:
+        k3s_cluster_init_fail_prereqs: true
+      delegate_to: "{{ item }}"
+      delegate_facts: true
+      loop: "{{ play_hosts }}"
+      when: "'k3s.service' in ansible_facts.services"
+
+    # Check if kubectl present
+    - name: kubectl check
+      ansible.builtin.command:
+        cmd: which kubectl
+      register: k3s_kubectl_check
+      failed_when: false
+      changed_when: false
+
+    # Fail if kubectl present
+    - name: Fail kubectl check state
+      ansible.builtin.set_fact:
+        k3s_cluster_init_fail_prereqs: true
+      delegate_to: "{{ item }}"
+      delegate_facts: true
+      loop: "{{ play_hosts }}"
+      when: 'k3s_kubectl_check.rc == 0'
+
+    - when: k3s_cluster_init_fail_prereqs
+      fail:
+        msg: Cluster init required, but prerequisites for a clean environment have not been met
+
+- when:
+    # Only perform cluster init when the apiserver is unreachable
+    - k3s_apiserver_reachable == false
+  run_once: true
+  vars:
+    k3s_cluster_init: true
+  block:
+    # Perform actual cluster initialisation
+    - name: Cluster init
+      include_tasks: configure.yml
+      vars:
+        k3s_configure_server_name: "{{ inventory_hostname }}"
+
+    - name: Sleep - give cluster time to initialise
+      ansible.builtin.pause:
+        minutes: 2
+
+    # Check for HTTP 200 on k3s_apiserver_lb_port
+    - name: "Check for healthy apiserver lb on port {{ k3s_apiserver_lb_port }}"
+      ansible.builtin.uri:
+        validate_certs: false
+        use_proxy: false
+        url: "https://127.0.0.1:{{ k3s_apiserver_lb_port }}/"
+      environment:
+        http_proxy: ''
+        https_proxy: ''
+      register: k3s_apiserver_lb_port_status
+      retries: 2
+      delay: 15
+      # status greater than 0 means we have a HTTP response, so a backend is reachable (haproxy is
+      # a TCP load balancer in this config, so won't send HTTP responses itself)
+      # Ideally we would monitor the kubernetes health endpoints, but they require authentication in k3s
+      until: k3s_apiserver_lb_port_status.status|default(-1)|int > 0
+      failed_when: k3s_apiserver_lb_port_status.status|default(-1)|int <= 0

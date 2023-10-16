@@ -1,0 +1,24 @@
+---
+
+# Should be able to query the version on any server system
+- name: Check kubectl version
+  ansible.builtin.command:
+    cmd: kubectl version
+  register: k3s_kubectl_check
+  failed_when: k3s_kubectl_check.rc != 0
+
+# Should be able to query list of namespaces
+- name: Check kubectl namespace retrieve
+  ansible.builtin.command:
+    cmd: kubectl get ns
+  register: k3s_kubectl_check
+  failed_when: k3s_kubectl_check.rc != 0
+
+# Should be able query each node in the play
+- name: Check for nodes
+  ansible.builtin.command:
+    cmd: "kubectl get node {{ hostvars[item].ansible_hostname }}"
+  register: k3s_kubectl_check
+  failed_when: k3s_kubectl_check.rc != 0
+  loop: "{{ play_hosts }}"
+  run_once: true

@@ -1,0 +1,63 @@
+---
+
+- name: Check install type
+  fail:
+    msg: 'Invalid install type: {{ k3s_install_type | default('') }}'
+  when: k3s_install_type != 'server' and k3s_install_type != 'agent'
+
+# Configure ufw firewall, if required
+- when: k3s_ufw_allow_nets | length > 0
+  block:
+    - name: UFW Allow Ports
+      community.general.ufw:
+        direction: in
+        rule: allow
+        src: "{{ item[0] }}"
+        proto: "{{ item[1].proto }}"
+        to_port: "{{ item[1].port }}"
+      loop: "{{ k3s_ufw_allow_nets | product(k3s_ufw_ports) }}"
+
+# Configure apiserver load balancer (haproxy)
+- name: apiserver configuration
+  include_tasks: apiserver.yml
+
+# Cluster initialisation. cluster_init.yml will check if this is necessary
+- name: Cluster init
+  include_tasks: cluster_init.yml
+  when: k3s_install_type == 'server'
+
+# Capture join tokens from any server nodes and distribute to other nodes facts
+- name: Capture join tokens
+  include_tasks: capture_tokens.yml
+  when: k3s_install_type == 'server'
+
+# For each 'server', apply server configuration
+- name: Server configuration
+  vars:
+    k3s_cluster_init: false
+  include_tasks: configure.yml
+  when: k3s_install_type == 'server'
+  # The include is called for each inventory host and the configure.yml only performs the
+  # task actions if the k3s_configure_server_name var refers to the current host
+  # This is to emulate serial/throttle for a block of tasks.
+  loop: "{{ play_hosts }}"
+  loop_control:
+    loop_var: k3s_configure_server_name
+
+# For each 'agent', apply agent configuration
+- name: Agent configuration
+  vars:
+    k3s_cluster_init: false
+  include_tasks: configure.yml
+  when: k3s_install_type == 'agent'
+  # The include is called for each inventory host and the configure.yml only performs the
+  # task actions if the k3s_configure_server_name var refers to the current host
+  # This is to emulate serial/throttle for a block of tasks.
+  loop: "{{ play_hosts }}"
+  loop_control:
+    loop_var: k3s_configure_server_name
+
+# Any post installation/configuration checks that should be performed
+- name: Post install checks (server)
+  include_tasks: server_post_install_checks.yml
+  when: k3s_install_type == 'server'

@@ -1,0 +1,32 @@
+---
+
+k3s_binary_url: "https://github.com/k3s-io/k3s/releases/download/v1.27.6+k3s1/k3s"
+k3s_install_type: "{{ undef(hint='k3s_install_type must be agent or server')}}"
+k3s_binary_path: /usr/local/bin/k3s
+k3s_apiserver_lb_port: "6445"
+k3s_listen_port: "6443"
+k3s_config_content: ''
+k3s_environment: {}
+
+k3s_server_service_args: ''
+k3s_agent_service_args: ''
+
+k3s_ufw_allow_nets: []
+
+k3s_ufw_ports:
+  - port: "2379"
+    proto: tcp
+  - port: "2380"
+    proto: tcp
+  - port: "6443"
+    proto: tcp
+  - port: "{{ k3s_apiserver_lb_port }}"
+    proto: tcp
+  - port: "8472"
+    proto: udp
+  - port: "10250"
+    proto: tcp
+  - port: "51820"
+    proto: udp
+  - port: "51821"
+    proto: udp
