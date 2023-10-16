@@ -77,3 +77,4 @@
       # Ideally we would monitor the kubernetes health endpoints, but they require authentication in k3s
       until: k3s_apiserver_lb_port_status.status|default(-1)|int > 0
       failed_when: k3s_apiserver_lb_port_status.status|default(-1)|int <= 0
+      check_mode: false
