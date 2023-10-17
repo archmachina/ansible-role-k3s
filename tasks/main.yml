@@ -7,7 +7,7 @@
 
 - name: k3s directory
   ansible.builtin.file:
-    path: ~/k3s
+    path: "{{ k3s_asset_directory }}"
     state: directory
     mode: "0755"
 

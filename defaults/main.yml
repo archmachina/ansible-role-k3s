@@ -31,8 +31,8 @@ k3s_ufw_ports:
   - port: "51821"
     proto: udp
 
-k3s_dashboard_url: 'https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml'
-k3s_longhorn_url: https://raw.githubusercontent.com/longhorn/longhorn/v1.5.1/deploy/longhorn.yaml
+# Helm cli installation
+k3s_helm_release_url: https://get.helm.sh/helm-v3.13.1-linux-amd64.tar.gz
+k3s_install_helmcli: true
 
-k3s_install_dashboard: false
-k3s_install_longhorn: false
+k3s_asset_directory: /root/k3s
