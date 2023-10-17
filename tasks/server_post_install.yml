@@ -46,3 +46,23 @@
         # include: "*/helm"
         src: "{{ k3s_asset_directory }}/helm.tgz"
         remote_src: true
+
+# Install Kustomize
+- name: Kustomize install
+  when: k3s_install_kustomize
+  block:
+    - name: Download kustomize release
+      ansible.builtin.get_url:
+        url: "{{ k3s_kustomize_release_url }}"
+        dest: "{{ k3s_asset_directory }}/kustomize.tgz"
+        mode: "0644"
+
+    - name: Extract kustomize
+      ansible.builtin.unarchive:
+        dest: /usr/local/bin
+        group: root
+        owner: root
+        mode: "0755"
+        include: "kustomize"
+        src: "{{ k3s_asset_directory }}/kustomize.tgz"
+        remote_src: true
