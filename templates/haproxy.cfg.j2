@@ -45,7 +45,7 @@ backend apiserver
     # http-check expect status 200
     mode tcp
     balance     roundrobin
-{% for server in play_hosts %}
+{% for server in ansible_play_hosts_all %}
 {% if hostvars[server].k3s_install_type|default('') == 'server' %}
     server {{ server }} {{ hostvars[server].ansible_facts.default_ipv4.address }}:{{ k3s_listen_port }} check check-ssl verify none inter 2000
 {% endif %}
