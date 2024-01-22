@@ -9,7 +9,8 @@
         owner: root
         group: root
         mode: "0755"
-      notify: 'restart k3s'
+      # notify: 'restart k3s'
+      register: k3s_state_download_binary
 
     - name: k3s directories
       ansible.builtin.file:
@@ -29,7 +30,8 @@
         owner: root
         group: root
         mode: "0644"
-      notify: 'restart k3s'
+      # notify: 'restart k3s'
+      register: k3s_state_config
 
     - name: Symlinks
       ansible.builtin.shell:
@@ -52,7 +54,8 @@
         owner: root
         group: root
         mode: "0640"
-      notify: 'restart k3s'
+      # notify: 'restart k3s'
+      register: k3s_state_service
 
     - name: Systemd service environment
       ansible.builtin.template:
@@ -61,7 +64,8 @@
         owner: root
         group: root
         mode: "0640"
-      notify: 'restart k3s'
+      # notify: 'restart k3s'
+      register: k3s_state_service_env
 
     - name: Enable k3s service
       ansible.builtin.systemd:
@@ -69,10 +73,21 @@
         daemon_reload: true
         enabled: true
 
-    - name: Flush handlers
-      ansible.builtin.meta: flush_handlers
+    # Flush handlers seems to break the calling loop early when there are handlers to
+    # process (i.e. all agents/servers wouldn't run)
+    # Creating explicit states for each of the conditions for restart doesn't seem
+    # to trigger this issue.
+    # Left here as a reminder as to the reason to not use handlers
+    # - name: Flush handlers
+    #   ansible.builtin.meta: flush_handlers
+    - name: Flag for restart k3s service
+      ansible.builtin.set_fact:
+        k3s_service_state: restarted
+      when: >
+        k3s_state_service_env.changed or k3s_state_service.changed or
+        k3s_state_download_binary.changed or k3s_state_config.changed
 
     - name: Start k3s service
       ansible.builtin.systemd:
         name: k3s
-        state: 'started'
+        state: '{{ k3s_service_state }}'
