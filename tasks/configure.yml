@@ -9,6 +9,7 @@
         owner: root
         group: root
         mode: "0755"
+        force: true
       # notify: 'restart k3s'
       register: k3s_state_download_binary
 
