@@ -6,12 +6,14 @@
         cmd: cat /var/lib/rancher/k3s/server/node-token
       register: k3s_node_token_status
       check_mode: false
+      changed_when: false
 
     - name: Read agent token
       ansible.builtin.command:
         cmd: cat /var/lib/rancher/k3s/server/agent-token
       register: k3s_agent_token_status
       check_mode: false
+      changed_when: false
 
     - name: Share agent token
       ansible.builtin.set_fact:
