@@ -1,33 +1,33 @@
 ---
 
-- block:
-    - name: Read node token
-      ansible.builtin.command:
-        cmd: cat /var/lib/rancher/k3s/server/node-token
-      register: k3s_node_token_status
-      check_mode: false
-      changed_when: false
+- name: Read node token
+  ansible.builtin.command:
+    cmd: cat /var/lib/rancher/k3s/server/node-token
+  register: k3s_node_token_status
+  check_mode: false
+  changed_when: false
+  failed_when: false
 
-    - name: Read agent token
-      ansible.builtin.command:
-        cmd: cat /var/lib/rancher/k3s/server/agent-token
-      register: k3s_agent_token_status
-      check_mode: false
-      changed_when: false
+- name: Read agent token
+  ansible.builtin.command:
+    cmd: cat /var/lib/rancher/k3s/server/agent-token
+  register: k3s_agent_token_status
+  check_mode: false
+  changed_when: false
+  failed_when: false
 
-    - name: Share agent token
-      ansible.builtin.set_fact:
-        k3s_node_token: "{{ k3s_node_token_status.stdout_lines[0] }}"
-        k3s_agent_token: "{{ k3s_agent_token_status.stdout_lines[0] }}"
-      when: k3s_node_token_status.stdout|default('') != '' and k3s_agent_token_status.stdout|default('') != ''
-      delegate_to: "{{ item }}"
-      delegate_facts: true
-      loop: "{{ play_hosts }}"
-      check_mode: false
-  rescue:
-    - name: Token read failure
-      debug:
-        msg: Could not read node and/or agent token
+- name: Share node and agent token
+  ansible.builtin.set_fact:
+    k3s_node_token: "{{ k3s_node_token_status.stdout_lines[0] }}"
+    k3s_agent_token: "{{ k3s_agent_token_status.stdout_lines[0] }}"
+  when:
+    - k3s_node_token_status is success
+    - k3s_agent_token_status is success
+    - k3s_node_token_status.stdout|default('') != '' and k3s_agent_token_status.stdout|default('') != ''
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ play_hosts }}"
+  check_mode: false
 
 # Make sure we have a token to use for joining
 - name: Check for token
