@@ -11,19 +11,11 @@
     state: directory
     mode: "0755"
 
-- name: Copy python requirements
-  ansible.builtin.copy:
-    src: requirements.txt
-    dest: ~/k3s/requirements.txt
-
-- name: Install pip
+- name: Install packages
   ansible.builtin.package:
-    name: python3-pip
-    state: present
-
-- name: Install python packages via pip
-  ansible.builtin.pip:
-    requirements: ~/k3s/requirements.txt
+    name:
+      - python3-pip
+      - python3-kubernetes
     state: present
 
 # Configure ufw firewall, if required
