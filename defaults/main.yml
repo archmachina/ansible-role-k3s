@@ -1,6 +1,6 @@
 ---
 
-k3s_binary_url: "https://github.com/k3s-io/k3s/releases/download/v1.31.1+k3s1/k3s"
+k3s_binary_url: "https://github.com/k3s-io/k3s/releases/download/v1.32.3+k3s1/k3s"
 k3s_install_type: "{{ undef(hint='k3s_install_type must be agent or server')}}"
 k3s_binary_path: /usr/local/bin/k3s
 k3s_apiserver_lb_port: "6445"
