@@ -15,7 +15,7 @@
 - name: k3s apiserver container
   community.docker.docker_container:
     name: k3s-apiserver-haproxy
-    image: haproxy:3.1.7
+    image: haproxy:3.2.3
     volumes:
       - "/etc/k3s-haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg"
     state: "started"
