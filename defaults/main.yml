@@ -1,6 +1,6 @@
 ---
 
-k3s_binary_url: "https://github.com/k3s-io/k3s/releases/download/v1.32.3+k3s1/k3s"
+k3s_binary_url: "https://github.com/k3s-io/k3s/releases/download/v1.33.1+k3s1/k3s"
 k3s_install_type: "{{ undef(hint='k3s_install_type must be agent or server')}}"
 k3s_binary_path: /usr/local/bin/k3s
 k3s_apiserver_lb_port: "6445"
@@ -32,11 +32,11 @@ k3s_ufw_ports:
     proto: udp
 
 # Helm cli installation
-k3s_helm_release_url: https://get.helm.sh/helm-v3.13.1-linux-amd64.tar.gz
+k3s_helm_release_url: https://get.helm.sh/helm-v3.17.4-linux-amd64.tar.gz
 k3s_install_helmcli: true
 
 # Kustomize installation
-k3s_kustomize_release_url: https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.1.1/kustomize_v5.1.1_linux_amd64.tar.gz
+k3s_kustomize_release_url: https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.7.1/kustomize_v5.7.1_linux_amd64.tar.gz
 k3s_install_kustomize: true
 
 k3s_asset_directory: /root/k3s
