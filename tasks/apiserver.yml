@@ -23,6 +23,8 @@
     network_mode: "host"
     recreate: "{{ true if haproxy_config.changed else false }}"
     restart: "{{ true if haproxy_config.changed else false }}"
+  retries: 2
+  delay: 15
 
 - name: Wait for haproxy to listen
   ansible.builtin.wait_for:
