@@ -32,6 +32,10 @@
         url: "{{ k3s_helm_release_url }}"
         dest: "{{ k3s_asset_directory }}/helm.tgz"
         mode: "0644"
+      register: k3s_helm_release_download
+      until: k3s_helm_release_download is succeeded
+      retries: 3
+      delay: 5
 
     - name: Extract helm
       ansible.builtin.unarchive:
@@ -56,6 +60,10 @@
         url: "{{ k3s_kustomize_release_url }}"
         dest: "{{ k3s_asset_directory }}/kustomize.tgz"
         mode: "0644"
+      register: k3s_kustomize_release_download
+      until: k3s_kustomize_release_download is succeeded
+      retries: 3
+      delay: 5
 
     - name: Extract kustomize
       ansible.builtin.unarchive:
